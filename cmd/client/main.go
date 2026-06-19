@@ -1,3 +1,20 @@
+// Package main provides the entry point for the BeaconSync client.
+//
+// The client is responsible for initializing runtime configuration,
+// establishing communication with the remote server, scheduling
+// heartbeat tasks, encoding outbound data, and synchronizing
+// telemetry through the configured transport layer.
+//
+// Current features:
+// - HTTP-based communication
+// - JSON payload encoding
+//
+//	Planned features:
+//
+// - Configurable heartbeat scheduler
+// - Retry and backoff mechanism
+// - WebSocket and SOCKS5 transports
+// - Additional encoding strategies
 package main
 
 import (
