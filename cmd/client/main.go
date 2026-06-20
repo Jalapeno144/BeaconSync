@@ -20,7 +20,10 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -30,10 +33,50 @@ var (
 	globalClient *http.Client
 )
 
+var useRegex = regexp.MustCompile(`^use\s+([a-zA-Z0-9_\-\.\:\[\]]+):(\d{1,5})$`)
+
+func handleInput(input string) {
+	input = strings.TrimSpace(input)
+
+	// 1. Structure match
+	if useRegex.MatchString(input) {
+		matches := useRegex.FindStringSubmatch(input)
+		host := matches[1] // possible choices: 127.0.0.1、example.com 或 [::1]
+		port := matches[2] // port
+
+		// use net package to test if the addr is valid
+		// if it's a domain，net.ParseIP returns nil
+		ip := net.ParseIP(host)
+
+		if ip != nil {
+			fmt.Printf("[*] Tested valid IP address: %s\n", ip.String())
+		} else {
+			// not an ip: to test if it's a valid domain
+			// domain rules
+			if strings.HasPrefix(host, ".") || strings.HasSuffix(host, ".") || strings.Contains(host, "..") {
+				fmt.Println("[-] Error: Illegal domain")
+				return
+			}
+			fmt.Printf("[*] Tested domain/server: %s\n", host)
+		}
+
+		targetAddr := fmt.Sprintf("%s:%s", host, port)
+		fmt.Printf("[+] 目标地址格式正确，设置为: %s\n", targetAddr)
+		return
+	}
+
+	// 3. Show errors
+	if strings.HasPrefix(input, "use") {
+		fmt.Println("[!] Error! Correct usage:")
+		fmt.Println("    - Domain: use example.com:8080")
+		fmt.Println("    - IP  : use 192.168.1.1:8080")
+		return
+	}
+}
+
 // connectServer
 func connectServer(addr string, proto string) error {
 	tr := &http.Transport{
-		// 限制最大空闲连接数，保持长连接
 		MaxIdleConns:      10,
 		IdleConnTimeout:   30 * time.Second,
 		DisableKeepAlives: false, // Keep-Alive
@@ -49,6 +92,7 @@ func connectServer(addr string, proto string) error {
 		Transport: tr,
 	}
 
+	fmt.Println()
 	// send a package to server to test the route
 	fullURL := fmt.Sprintf("%s://%s/handshake", proto, addr)
 	resp, err := globalClient.Get(fullURL)
@@ -67,8 +111,8 @@ func help() {
 	fmt.Println("              BeaconSync Interactive CLI              ")
 	fmt.Println("======================================================")
 	fmt.Println("Available commands:")
-	fmt.Println("  use <ip:port>  - Set target server IP")
-	fmt.Println("  send           - Send heartbeat payload")
+	fmt.Println("  use <ip:port>  - Set target (e.g., use 10.0.0.1:8080 or use api.sync.local:443)")
+	fmt.Println("  send           - Send payload")
 	fmt.Println("  show           - Show current configuration")
 	fmt.Println("  exit           - Exit program")
 	fmt.Println("======================================================")
