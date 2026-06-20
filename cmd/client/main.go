@@ -55,7 +55,7 @@ func connectServer(addr string, proto string) error {
 	if err != nil {
 		return fmt.Errorf("connection failed: %v", err)
 	}
-	defer resp.Body.Close() // 必须关闭，连接才会放回池中复用
+	defer resp.Body.Close()
 
 	fmt.Printf("[+] Connection established successfully to %s\n", addr)
 	return nil
