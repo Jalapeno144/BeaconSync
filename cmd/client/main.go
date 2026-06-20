@@ -61,7 +61,7 @@ func handleInput(input string) {
 		}
 
 		targetAddr := fmt.Sprintf("%s:%s", host, port)
-		fmt.Printf("[+] 目标地址格式正确，设置为: %s\n", targetAddr)
+		fmt.Printf("[+] Target address correct, set connection to: %s\n", targetAddr)
 		return
 	}
 
@@ -107,15 +107,15 @@ func connectServer(addr string, proto string) error {
 
 // Main Menu
 func help() {
-	fmt.Println("======================================================")
-	fmt.Println("              BeaconSync Interactive CLI              ")
-	fmt.Println("======================================================")
+	fmt.Println("======================================================================================")
+	fmt.Println("                                 BeaconSync Interactive CLI                           ")
+	fmt.Println("======================================================================================")
 	fmt.Println("Available commands:")
 	fmt.Println("  use <ip:port>  - Set target (e.g., use 10.0.0.1:8080 or use api.sync.local:443)")
 	fmt.Println("  send           - Send payload")
 	fmt.Println("  show           - Show current configuration")
 	fmt.Println("  exit           - Exit program")
-	fmt.Println("======================================================")
+	fmt.Println("======================================================================================")
 }
 
 func main() {
