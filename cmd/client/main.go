@@ -22,18 +22,63 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
+// Define the structure corresponding to config.yaml.
+type Config struct {
+	Transport struct {
+		ServerAddr string `yaml:"server_addr"`
+		Protocol   string `yaml:"protocol"`
+		Timeout    int    `yaml:"timeout"`
+	} `yaml:"transport"`
+
+	HTTPOptions struct {
+		MaxIdleConns      int  `yaml:"max_idle_conns"`
+		IdleConnTimeout   int  `yaml:"idle_conn_timeout"`
+		DisableKeepAlives bool `yaml:"disable_keep_alives"`
+	} `yaml:"http_options"`
+}
+
 var (
+	// set default values, use these values if failed to resolve YAML
 	serverAddr   string = "127.0.0.1:8080"
 	protocol     string = "http"
 	globalClient *http.Client
 )
 
 var useRegex = regexp.MustCompile(`^use\s+([a-zA-Z0-9_\-\.\:\[\]]+):(\d{1,5})$`)
+
+// loadConfig
+func loadConfig(filepath string) {
+	file, err := os.ReadFile(filepath)
+	if err != nil {
+		fmt.Printf("[!] Warning: Cannot read config file %s (%v), using hardcoded defaults.\n", filepath, err)
+		return
+	}
+
+	var cfg Config
+	err = yaml.Unmarshal(file, &cfg)
+	if err != nil {
+		fmt.Printf("[!] Warning: Error parsing YAML (%v), using hardcoded defaults.\n", err)
+		return
+	}
+
+	// set config in YAML to global variables
+	if cfg.Transport.ServerAddr != "" {
+		serverAddr = cfg.Transport.ServerAddr
+	}
+	if cfg.Transport.Protocol != "" {
+		protocol = strings.ToLower(cfg.Transport.Protocol)
+	}
+
+	fmt.Printf("[+] Configuration loaded successfully from %s\n", filepath)
+}
 
 func handleInput(input string) {
 	input = strings.TrimSpace(input)
@@ -45,14 +90,12 @@ func handleInput(input string) {
 		port := matches[2] // port
 
 		// use net package to test if the addr is valid
-		// if it's a domain，net.ParseIP returns nil
 		ip := net.ParseIP(host)
 
 		if ip != nil {
 			fmt.Printf("[*] Tested valid IP address: %s\n", ip.String())
 		} else {
 			// not an ip: to test if it's a valid domain
-			// domain rules
 			if strings.HasPrefix(host, ".") || strings.HasSuffix(host, ".") || strings.Contains(host, "..") {
 				fmt.Println("[-] Error: Illegal domain")
 				return
@@ -60,8 +103,8 @@ func handleInput(input string) {
 			fmt.Printf("[*] Tested domain/server: %s\n", host)
 		}
 
-		targetAddr := fmt.Sprintf("%s:%s", host, port)
-		fmt.Printf("[+] Target address correct, set connection to: %s\n", targetAddr)
+		serverAddr = fmt.Sprintf("%s:%s", host, port) // renew serverAddr
+		fmt.Printf("[+] Target address correct, set connection to: %s\n", serverAddr)
 		return
 	}
 
@@ -119,5 +162,8 @@ func help() {
 }
 
 func main() {
+	// load yaml file
+	loadConfig("config.yaml")
+
 	help()
 }

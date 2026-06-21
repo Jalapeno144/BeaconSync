@@ -13,7 +13,12 @@ A configurable client-server framework for heartbeat-based telemetry and reliabl
     beaconsync/
     ├── cmd/
     │   ├── client/
+    │   │     ├── config.yaml       # default client configuration
+    │   │     └── main.go           # source code of client
     │   └── server/
+    │        ├── config.yaml        # default server configuration
+    │        └── main.go            # source code of server
+    ├── test/                       # store my unit testing
     ├── internal/
     │   ├── scheduler/
     │   ├── transport/

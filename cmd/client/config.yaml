@@ -1,0 +1,28 @@
+# ====================================================================
+# Global configuration of Client
+# ====================================================================
+
+# Basic Internet connection
+transport:
+  # server ip: supports "IP:port" or "domain:port"
+  # eg: "127.0.0.1:8080", "api.beacon-sync.com:443"
+  server_addr: "127.0.0.1:8080"
+  
+  # communication protocol，supports "http" or "https"
+  # NOTICE：if https is set, it automatically turn on InsecureSkipVerify to escape authentication
+  protocol: "http"
+  
+  # Overall request timeout (in seconds)
+  timeout: 10
+
+# HTTP Transport Layer Advanced Optimization Configuration
+http_options:
+  # Maximum number of idle connections, maintain long-lived connection pool
+  max_idle_conns: 10
+  
+  # Idle connection timeout logout time (in seconds)
+  idle_conn_timeout: 30
+  
+  # Disable Keep-Alive persistent connections 
+  # (It is recommended to keep it as false and enable persistent connections).
+  disable_keep_alives: false
