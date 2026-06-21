@@ -22,8 +22,10 @@ A configurable client-server framework for heartbeat-based telemetry and reliabl
     ├── internal/
     │   ├── scheduler/
     │   ├── transport/
+    │   ├── protocol/
     │   ├── encoder/
     │   ├── decoder/
+    │   ├── crypto/                # store key and signature
     │   ├── storage/
     │   └── validator/
     ├── pkg/

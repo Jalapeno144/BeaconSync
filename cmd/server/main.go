@@ -15,6 +15,34 @@
 //   - Advanced scheduling and policy distribution
 package main
 
-func main() {
+//! This is just a simplest version of server, which only realize the function of answering the request
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+)
 
+func handler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	resp := map[string]string{
+		"status":  "ok",
+		"version": "0.1",
+		"server":  "BeaconSync",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func main() {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/handshake", handler)
+
+	log.Println("Server listening on :8080")
+	log.Fatal(http.ListenAndServe(":8080", mux))
 }
