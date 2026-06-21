@@ -6,13 +6,14 @@
 //
 // Current features:
 //   - HTTP listener
-//   - Basic request processing
-//   - JSON payload decoding
 //
 // Planned features:
 //   - WebSocket and SOCKS5 transports
 //   - Pluggable storage backends
 //   - Advanced scheduling and policy distribution
+//   - Basic request processing
+//   - JSON payload decoding
+
 package main
 
 //! This is just a simplest version of server, which only realize the function of answering the request

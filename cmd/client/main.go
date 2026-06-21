@@ -2,7 +2,7 @@
 //
 // The client is responsible for initializing runtime configuration,
 // establishing communication with the remote server, scheduling
-// heartbeat tasks, encoding outbound data, and synchronizing
+// Make tasks, encoding outbound data, and synchronizing
 // telemetry through the configured transport layer.
 //
 // Current features:
@@ -11,7 +11,7 @@
 //
 //	Planned features:
 //
-// - Configurable heartbeat scheduler
+// - Configurable scheduler
 // - Retry and backoff mechanism
 // - WebSocket and SOCKS5 transports
 // - Additional encoding strategies
