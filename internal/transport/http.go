@@ -1,4 +1,3 @@
-// TODO deal with problem of certification
 package transport
 
 import (
@@ -6,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -145,20 +145,25 @@ func (h *HTTPTransport) Connect() error {
 }
 
 // Send transmits data to the server by POSTing to the /data endpoint.
-func (h *HTTPTransport) Send(data []byte) error {
+func (h *HTTPTransport) Send(data []byte) ([]byte, error) {
 	url := fmt.Sprintf("%s://%s/data", h.protocol, h.serverAddr)
 
 	resp, err := h.client.Post(url, "application/octet-stream", bytes.NewReader(data))
 	if err != nil {
-		return fmt.Errorf("send failed: %w", err)
+		return nil, fmt.Errorf("send failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("send returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("send returned status %d", resp.StatusCode)
 	}
 
-	return nil
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response failed: %w", err)
+	}
+
+	return body, nil
 }
 
 // Close drains and closes idle connections in the underlying pool.

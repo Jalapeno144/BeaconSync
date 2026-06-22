@@ -208,7 +208,8 @@ func (c *CLI) sendBeacon() {
 	fmt.Printf("[*] Sending beacon to %s://%s ...\n",
 		c.cfg.Transport.Protocol, c.cfg.Transport.ServerAddr)
 
-	if err := c.tr.Send(data); err != nil {
+	//TODO deal with response body of Send()
+	if _, err := c.tr.Send(data); err != nil {
 		fmt.Printf("[-] Send failed: %v\n", err)
 		return
 	}
