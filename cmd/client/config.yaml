@@ -26,3 +26,7 @@ http_options:
   # Disable Keep-Alive persistent connections 
   # (It is recommended to keep it as false and enable persistent connections).
   disable_keep_alives: false
+
+tls:
+  mode: "strict" # Optional： "strict | custom | skip"
+  ca_path: ""    # Default None customized CA

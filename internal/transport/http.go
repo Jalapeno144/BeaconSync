@@ -4,10 +4,18 @@ package transport
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 )
+
+// TLS configuration Path
+type TLSConfig struct {
+	Mode   string `yaml:"mode"`    // "strict" | "skip" | "custom"
+	CAPath string `yaml:"ca_path"` // optional
+}
 
 // httpTransportConfig holds internal configuration for HTTPTransport.
 type httpTransportConfig struct {
@@ -15,6 +23,8 @@ type httpTransportConfig struct {
 	idleConnTimeout   time.Duration
 	disableKeepAlives bool
 	timeout           time.Duration
+
+	TLS TLSConfig `yaml:"tls"` // Add TLS configuration
 }
 
 // HTTPTransportOption is a functional option for configuring HTTPTransport.
@@ -40,6 +50,20 @@ func WithTimeout(d time.Duration) HTTPTransportOption {
 	return func(c *httpTransportConfig) { c.timeout = d }
 }
 
+// Set TLS Mode. Optional: strict | custom | skip
+func WithTLSMode(mode string) HTTPTransportOption {
+	return func(c *httpTransportConfig) {
+		c.TLS.Mode = mode
+	}
+}
+
+// Add temporary CA to communication
+func WithCAPath(path string) HTTPTransportOption {
+	return func(c *httpTransportConfig) {
+		c.TLS.CAPath = path
+	}
+}
+
 // HTTPTransport implements Transport over HTTP and HTTPS.
 type HTTPTransport struct {
 	serverAddr string
@@ -49,7 +73,7 @@ type HTTPTransport struct {
 
 // NewHTTPTransport creates a new HTTPTransport with the given address,
 // protocol ("http" or "https"), and optional configuration.
-func NewHTTPTransport(addr, proto string, opts ...HTTPTransportOption) *HTTPTransport {
+func NewHTTPTransport(addr, proto string, opts ...HTTPTransportOption) (*HTTPTransport, error) {
 	cfg := &httpTransportConfig{
 		maxIdleConns:      10,
 		idleConnTimeout:   30 * time.Second,
@@ -67,9 +91,29 @@ func NewHTTPTransport(addr, proto string, opts ...HTTPTransportOption) *HTTPTran
 	}
 
 	if proto == "https" {
-		tr.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true,
+		tlsCfg := &tls.Config{}
+
+		switch cfg.TLS.Mode {
+		case "skip":
+			tlsCfg.InsecureSkipVerify = true
+
+		case "custom":
+			cert, err := os.ReadFile(cfg.TLS.CAPath)
+			if err != nil {
+				return nil, fmt.Errorf("[!] FAILED TO READ CA: %w", err)
+			}
+
+			pool := x509.NewCertPool()
+			if !pool.AppendCertsFromPEM(cert) {
+				// failed to interpret PEM
+			}
+			tlsCfg.RootCAs = pool
+
+		case "strict", "":
+			//! default behavior which we consider safe
 		}
+
+		tr.TLSClientConfig = tlsCfg
 	}
 
 	return &HTTPTransport{
@@ -79,7 +123,7 @@ func NewHTTPTransport(addr, proto string, opts ...HTTPTransportOption) *HTTPTran
 			Timeout:   cfg.timeout,
 			Transport: tr,
 		},
-	}
+	}, nil
 }
 
 // Connect sends a GET request to the /Connect endpoint to verify

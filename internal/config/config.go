@@ -18,6 +18,12 @@ type Result struct {
 type Config struct {
 	Transport   TransportConfig   `yaml:"transport"`
 	HTTPOptions HTTPOptionsConfig `yaml:"http_options"`
+	TLS         TLSConfig         `yaml:"tls"`
+}
+
+type TLSConfig struct {
+	Mode   string `yaml:"mode"`    // strict / skip / custom
+	CAPath string `yaml:"ca_path"` // custom 模式使用
 }
 
 // TransportConfig holds transport-related settings.
@@ -47,6 +53,10 @@ func DefaultConfig() Config {
 			MaxIdleConns:      10,
 			IdleConnTimeout:   30,
 			DisableKeepAlives: false,
+		},
+		TLS: TLSConfig{
+			Mode:   "strict",
+			CAPath: "",
 		},
 	}
 }

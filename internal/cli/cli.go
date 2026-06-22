@@ -152,11 +152,15 @@ func (c *CLI) connect() error {
 		transport.WithDisableKeepAlives(c.cfg.HTTPOptions.DisableKeepAlives),
 	}
 
-	c.tr = transport.NewHTTPTransport(
+	var err error
+	c.tr, err = transport.NewHTTPTransport(
 		c.cfg.Transport.ServerAddr,
 		c.cfg.Transport.Protocol,
 		opts...,
 	)
+	if err != nil {
+		return fmt.Errorf("[!] FAILED TO CREATE HTTP TRANSPORT: %w", err)
+	}
 
 	if err := c.tr.Connect(); err != nil {
 		return err
