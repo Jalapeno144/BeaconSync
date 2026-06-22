@@ -5,7 +5,7 @@ A covert channel that supports the transmission of encrypted information
 
 - Language: Go
 - Networking: net/http
-- Protocols: HTTP, WebSocket (planned), SOCKS5 (planned)
+- Protocols: HTTP, WebSocket (planned), SOCKS5 (planned), UDP(planned), TCP(planned)
 
 ## 📂 Project Structure
 
@@ -21,28 +21,47 @@ A covert channel that supports the transmission of encrypted information
     ├── test/                      # store my unit testing
     ├── internal/
     │   ├── scheduler/
-    │   ├── transport/
+    │   ├── cli/                   # cli module
+    │   │    └── cli.go 
+    │   ├── transport/             # transportation module
+    │   │    ├── transport.go      # define Transport interface
+    │   │    ├── http.go           # HTTPTransport realization
+    │   │    ├── websocket.go    
+    │   │    └── socks5.go       
+    │   ├── config/
+    │   │    └── config.go         # load default config
     │   ├── protocol/
-    │   ├── encoder/
-    │   ├── decoder/
-    │   ├── crypto/                # store key and signature
+    │   ├── sessions/              # used to manage client sessions
+    │   ├── encoder/               # encode data
+    │   ├── decoder/               # decode data
+    │   ├── crypto/                # cryptographic primitives and key management
+    │   ├── executor/              # execute command on client machine
     │   ├── storage/
     │   └── validator/
     ├── pkg/
     ├── configs/
+    ├── .gitignores
+    ├── LICENSE                    # my license
     ├── docs/
     ├── go.mod
     └── README.md
 ```
 
-## Status: 🚧 Under active development
-Implemented:
-- HTTP transport
-- Basic server
-- JSON encoding
+## 🚧 Project Status & Roadmap
 
-Planned:
-- Heartbeat scheduler
-- Retry mechanism
-- Pluggable transports
-- Additional encoding strategies
+### 🟢 Implemented (Done)
+- **Core Architecture:** Basic client-server communication hub.
+
+### 🟡 Under Development
+- **Pluggable Transports:** Modular core architecture (`internal/transport`) to dynamically switch protocols. ![In Progress](https://img.shields.io/badge/-In%20Progress-blue)
+- **Interactive CLI:** Control interface (`internal/cli`) for seamless agent management. ![In Progress](https://img.shields.io/badge/-In%20Progress-blue)
+- **HTTP Transport:** Covert channel over standard HTTP protocol. ![In Progress](https://img.shields.io/badge/-In%20Progress-blue)
+- **Data Encoding:** Fast and reliable JSON serialization. ![In Progress](https://img.shields.io/badge/-In%20Progress-blue)
+
+### ⏳ Planned (Roadmap)
+- **Advanced Protocols:** Integration of WebSocket, SOCKS5, TCP, and UDP channels. ![Planned](https://img.shields.io/badge/-Planned-orange)
+- **Resilience Engine:** Intelligent heartbeat scheduler (with jitter) and exponential backoff retry mechanism. ![Planned](https://img.shields.io/badge/-Planned-orange)
+- **Security & Privacy:** - Dynamic data encoders/decoders to obfuscate traffic. ![Planned](https://img.shields.io/badge/-Planned-orange)
+  - Robust cryptographic primitives and end-to-end key management. ![Planned](https://img.shields.io/badge/-Planned-orange)
+- **Session & Task Management:** - Multi-client session tracking (`internal/sessions`). ![Planned](https://img.shields.io/badge/-Planned-orange)
+  - Native command execution worker (`internal/executor`). ![Planned](https://img.shields.io/badge/-Planned-orange)
