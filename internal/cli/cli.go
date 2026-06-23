@@ -10,10 +10,12 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Jalapeno144/BeaconSync/internal/config"
+	"github.com/Jalapeno144/BeaconSync/internal/scheduler"
 	"github.com/Jalapeno144/BeaconSync/internal/transport"
 )
 
@@ -21,19 +23,27 @@ import (
 // or bracketed IPv6 address.
 var useRegex = regexp.MustCompile(`^use\s+([a-zA-Z0-9_\-\.\:\[\]]+):(\d{1,5})$`)
 
+var (
+	heartbeatSetRegex       = regexp.MustCompile(`^heartbeat\s+set\s+(\S+)$`)
+	heartbeatJitterAbsRegex = regexp.MustCompile(`^heartbeat\s+jitter\s+abs\s+(\S+)$`)
+	heartbeatJitterPctRegex = regexp.MustCompile(`^heartbeat\s+jitter\s+pct\s+(\S+)$`)
+)
+
 // CLI is the interactive command-line interface.
 type CLI struct {
-	cfg       *config.Config
-	tr        transport.Transport
-	reader    *bufio.Reader
-	connected bool
+	cfg          *config.Config
+	tr           transport.Transport
+	reader       *bufio.Reader
+	connected    bool
+	heartbeatCfg scheduler.HeartbeatConfig
 }
 
 // New creates a CLI backed by the given configuration.
 func New(cfg *config.Config) *CLI {
 	return &CLI{
-		cfg:    cfg,
-		reader: bufio.NewReader(os.Stdin),
+		cfg:          cfg,
+		reader:       bufio.NewReader(os.Stdin),
+		heartbeatCfg: scheduler.DefaultHeartbeatConfig(),
 	}
 }
 
@@ -93,6 +103,15 @@ func (c *CLI) dispatch(input string) bool {
 	case useRegex.MatchString(input):
 		c.handleUse(input)
 
+	case heartbeatSetRegex.MatchString(input):
+		c.handleHeartbeatSet(input)
+	case heartbeatJitterAbsRegex.MatchString(input):
+		c.handleHeartbeatJitterAbs(input)
+	case heartbeatJitterPctRegex.MatchString(input):
+		c.handleHeartbeatJitterPct(input)
+	case input == "heartbeat" || input == "heartbeat show":
+		c.handleHeartbeatShow()
+
 	default:
 		if strings.HasPrefix(input, "use") {
 			fmt.Println("[!] INVALID FORMAT. CORRECT USAGE:")
@@ -100,7 +119,7 @@ func (c *CLI) dispatch(input string) bool {
 			fmt.Println("      use 192.168.1.1:8080")
 			fmt.Println("      use [::1]:8080          (IPv6)")
 		} else {
-			fmt.Printf("[-] Unknown command: %q — type 'help' for available commands.\n", input)
+			fmt.Printf("[!] UNKNOWN COMMAND: %q — type 'help' for available commands.\n", input)
 		}
 	}
 
@@ -123,7 +142,7 @@ func (c *CLI) handleUse(input string) {
 	} else {
 		// Domain sanity checks.
 		if strings.HasPrefix(host, ".") || strings.HasSuffix(host, ".") || strings.Contains(host, "..") {
-			fmt.Println("[-] ERROR: INVALID DOMAIN NAME")
+			fmt.Println("[!] ERROR: INVALID DOMAIN NAME")
 			return
 		}
 		fmt.Printf("[*] Using domain / server: %s\n", host)
@@ -210,11 +229,79 @@ func (c *CLI) sendBeacon() {
 
 	//TODO deal with response body of Send()
 	if _, err := c.tr.Send(data); err != nil {
-		fmt.Printf("[-] Send failed: %v\n", err)
+		fmt.Printf("[!] SEND FAILED: %v\n", err)
 		return
 	}
 
 	fmt.Println("[+] Beacon delivered.")
+}
+
+// ---------------------------------------------------------------------------
+// Heartbeat commands
+// ---------------------------------------------------------------------------
+
+func (c *CLI) handleHeartbeatShow() {
+	fmt.Println()
+	fmt.Println(strings.Repeat("-", 44))
+	fmt.Println("Heartbeat Configuration")
+	fmt.Println(strings.Repeat("-", 44))
+	fmt.Printf("  Base interval:   %v\n", c.heartbeatCfg.BaseInterval)
+	fmt.Printf("  Jitter (abs):    ±%v\n", c.heartbeatCfg.JitterAbs)
+	fmt.Printf("  Min interval:    %v\n", c.heartbeatCfg.MinInterval)
+	fmt.Printf("  Max interval:    %v\n", c.heartbeatCfg.MaxInterval)
+	fmt.Printf("  Next interval:   %v  (sample)\n", c.heartbeatCfg.NexInterval())
+	fmt.Println(strings.Repeat("-", 44))
+}
+
+func (c *CLI) handleHeartbeatSet(input string) {
+	matches := heartbeatSetRegex.FindStringSubmatch(input)
+	d, err := time.ParseDuration(matches[1])
+	if err != nil {
+		fmt.Printf("[!] INVALID DURATION %q — use formats like 90s, 2m, 1h\n", matches[1])
+		return
+	}
+	if d <= 0 {
+		fmt.Println("[!] INTERVAL MUST BE GREATER THAN ZERO")
+		return
+	}
+	c.heartbeatCfg.SetBaseInterval(d)
+	fmt.Printf("[+] Heartbeat base interval set to %v (jitter auto: ±%v)\n",
+		c.heartbeatCfg.BaseInterval, c.heartbeatCfg.JitterAbs)
+}
+
+func (c *CLI) handleHeartbeatJitterAbs(input string) {
+	matches := heartbeatJitterAbsRegex.FindStringSubmatch(input)
+	d, err := time.ParseDuration(matches[1])
+	if err != nil {
+		fmt.Printf("[-] Invalid duration %q — use formats like 15s, 500ms\n", matches[1])
+		return
+	}
+	if d <= 0 {
+		fmt.Println("[-] Jitter must be greater than zero")
+		return
+	}
+	if d >= c.heartbeatCfg.BaseInterval {
+		fmt.Printf("[-] Jitter (%v) must be less than base interval (%v)\n", d, c.heartbeatCfg.BaseInterval)
+		return
+	}
+	pct := float64(d) / float64(c.heartbeatCfg.BaseInterval)
+	c.heartbeatCfg.SetJitterAbs(c.heartbeatCfg.BaseInterval, pct)
+	fmt.Printf("[+] Jitter set to ±%v (%.0f%% of base interval)\n", c.heartbeatCfg.JitterAbs, pct*100)
+}
+
+func (c *CLI) handleHeartbeatJitterPct(input string) {
+	matches := heartbeatJitterPctRegex.FindStringSubmatch(input)
+	pct, err := strconv.ParseFloat(matches[1], 64)
+	if err != nil || pct < 0 || pct > 1 {
+		fmt.Println("[!] Invalid percentage — use 0.0–1.0, e.g., 0.2 for 20%")
+		return
+	}
+	if pct == 0 {
+		fmt.Println("[!] JITTER PERCENTAGE MUST BE GREATER THAN ZERO")
+		return
+	}
+	c.heartbeatCfg.SetJitterAbs(c.heartbeatCfg.BaseInterval, pct)
+	fmt.Printf("[+] Jitter set to ±%v (%.0f%% of base interval)\n", c.heartbeatCfg.JitterAbs, pct*100)
 }
 
 // ---------------------------------------------------------------------------
@@ -232,10 +319,14 @@ func (c *CLI) printMenu() {
 	fmt.Println()
 	fmt.Println(strings.Repeat("-", 56))
 	fmt.Println("Available commands:")
-	fmt.Println("  use <host:port>  Set target server    (use 10.0.0.1:8080)")
-	fmt.Println("  send             Send a beacon payload")
-	fmt.Println("  show             Display current configuration")
-	fmt.Println("  help             Show this menu")
-	fmt.Println("  exit             Exit the program")
+	fmt.Println("  use <host:port>         Set target server    (use 10.0.0.1:8080)")
+	fmt.Println("  send                    Send a beacon payload")
+	fmt.Println("  show                    Display transport configuration")
+	fmt.Println("  heartbeat               Show heartbeat configuration")
+	fmt.Println("  heartbeat set <d>       Set heartbeat base interval (heartbeat set 90s)")
+	fmt.Println("  heartbeat jitter abs <d> Set absolute jitter (heartbeat jitter abs 15s)")
+	fmt.Println("  heartbeat jitter pct <p> Set jitter percentage (heartbeat jitter pct 0.2)")
+	fmt.Println("  help                    Show this menu")
+	fmt.Println("  exit                    Exit the program")
 	fmt.Println(strings.Repeat("-", 56))
 }
