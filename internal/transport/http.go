@@ -103,7 +103,13 @@ func NewHTTPTransport(addr, proto string, opts ...HTTPTransportOption) (*HTTPTra
 				return nil, fmt.Errorf("[!] FAILED TO READ CA: %w", err)
 			}
 
-			pool := x509.NewCertPool()
+			// Start from the system pool so enterprise proxy CAs remain
+			// trusted — the outer TLS passes through SSL-decrypting
+			// middleboxes without raising alerts.
+			pool, err := x509.SystemCertPool()
+			if err != nil {
+				pool = x509.NewCertPool()
+			}
 			if !pool.AppendCertsFromPEM(cert) {
 				// failed to interpret PEM
 			}

@@ -1,9 +1,9 @@
 package scheduler
 
 import (
+	cryptorand "crypto/rand"
+	"math/big"
 	"time"
-
-	"math/rand"
 )
 
 type HeartbeatConfig struct {
@@ -57,13 +57,22 @@ func (c *HeartbeatConfig) NextInterval() time.Duration {
 		return c.BaseInterval
 	}
 
-	offset := time.Duration(rand.Int63n(int64(c.JitterAbs)))
-	var next time.Duration
-	if rand.Intn(2) == 0 {
-		next = c.BaseInterval + offset
-	} else {
-		next = c.BaseInterval - offset
-	}
+	// Uniform random in [BaseInterval - JitterAbs, BaseInterval + JitterAbs]
+	next := c.BaseInterval - c.JitterAbs + cryptoRandDuration(c.JitterAbs*2)
 
 	return c.clamp(next)
+}
+
+// cryptoRandDuration returns a uniformly random time.Duration in [0, max) using
+// crypto/rand. Panics if the CSPRNG is unavailable — on modern platforms
+// crypto/rand.Reader never fails.
+func cryptoRandDuration(max time.Duration) time.Duration {
+	if max <= 0 {
+		return 0
+	}
+	bi, err := cryptorand.Int(cryptorand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		panic("crypto/rand: CSPRNG is unavailable — " + err.Error())
+	}
+	return time.Duration(bi.Int64())
 }

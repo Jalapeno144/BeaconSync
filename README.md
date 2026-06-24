@@ -40,7 +40,7 @@ A covert channel that supports the transmission of encrypted information
     │   ├── decoder/               # decode data
     │   ├── crypto/                # cryptographic primitives and key management
     │   │    ├── crypto.go         # interface define
-    │   │    ├── aead.go           # realization of ChaCha20-Poly1305 crypto
+    │   │    ├── aead.go           # realization of AES-256-GCM crypto
     │   │    ├── ecdh.go           # X25519 key generating and sharing
     │   │    └── hkdf.go           # key deprivation implementation with HKDF-SHA256
     │   ├── executor/              # execute command on client machine
@@ -76,6 +76,8 @@ Acts as the central control loop for task polling, execution timing, and network
 Provides a highly abstracted communication interface that decouples the upper-tier agent logic from underlying network protocols.
 * **Unified Interface:** Defines standard behavior primitives for connection initialization and raw data streaming, allowing seamless protocol switching at runtime.
 * **HTTP Covert Channel:** Simulates normal web browsing behaviors by mimicking standard HTTP headers, cookies, and body structures to evaluate deep packet inspection (DPI) resilience.
+* **HTTPS Covert Channel:** Simulates normal https behaviors. It allows to verify temporary CA provided by controller meanwhile not intercepted by enterprise proxies.
+
 
 ### 🛡️ Crypto & Data Processing (`internal/crypto, encoder, decoder`)
 Handles end-to-end payload security and wire-format transformation.
