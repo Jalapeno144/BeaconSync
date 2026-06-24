@@ -36,6 +36,7 @@ type CLI struct {
 	reader       *bufio.Reader
 	connected    bool
 	heartbeatCfg scheduler.HeartbeatConfig
+	sched        *scheduler.Scheduler
 }
 
 // New creates a CLI backed by the given configuration.
@@ -249,7 +250,7 @@ func (c *CLI) handleHeartbeatShow() {
 	fmt.Printf("  Jitter (abs):    ±%v\n", c.heartbeatCfg.JitterAbs)
 	fmt.Printf("  Min interval:    %v\n", c.heartbeatCfg.MinInterval)
 	fmt.Printf("  Max interval:    %v\n", c.heartbeatCfg.MaxInterval)
-	fmt.Printf("  Next interval:   %v  (sample)\n", c.heartbeatCfg.NexInterval())
+	fmt.Printf("  Next interval:   %v  (sample)\n", c.heartbeatCfg.NextInterval())
 	fmt.Println(strings.Repeat("-", 44))
 }
 

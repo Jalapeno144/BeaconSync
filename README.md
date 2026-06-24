@@ -39,6 +39,10 @@ A covert channel that supports the transmission of encrypted information
     │   ├── encoder/               # encode data
     │   ├── decoder/               # decode data
     │   ├── crypto/                # cryptographic primitives and key management
+    │   │    ├── crypto.go         # interface define
+    │   │    ├── aead.go           # realization of ChaCha20-Poly1305 crypto
+    │   │    ├── ecdh.go           # X25519 key generating and sharing
+    │   │    └── hkdf.go           # key deprivation implementation with HKDF-SHA256
     │   ├── executor/              # execute command on client machine
     │   ├── storage/
     │   └── validator/

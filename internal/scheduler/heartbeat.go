@@ -50,8 +50,8 @@ func (c *HeartbeatConfig) clamp(d time.Duration) time.Duration {
 	return d
 }
 
-// Calculate time of next heart package
-func (c *HeartbeatConfig) NexInterval() time.Duration {
+// NextInterval returns the next heartbeat interval with jitter applied.
+func (c *HeartbeatConfig) NextInterval() time.Duration {
 	// No need to set Jitter
 	if c.JitterAbs <= 0 {
 		return c.BaseInterval
