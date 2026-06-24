@@ -30,7 +30,11 @@ A covert channel that supports the transmission of encrypted information
     │   ├── transport/             # transportation module
     │   │    ├── transport.go      # define Transport interface
     │   │    ├── http.go           # HTTPTransport realization
-    │   │    ├── websocket.go    
+    │   │    ├── websocket.go
+    │   │    ├── dns.go            # client transportation with dns
+    │   │    ├── dns_obfs.go       # dns decoder
+    │   │    ├── dns_handler.go    # dns server (server-side invocation)
+    │   │    ├── websocket.go     
     │   │    └── socks5.go       
     │   ├── config/
     │   │    └── config.go         # load default config
