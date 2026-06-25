@@ -48,7 +48,7 @@ import (
 //
 // The zero value is NOT usable; create one with NewMemoryRegion.
 type MemoryRegion struct {
-	addr uintptr
+	addr unsafe.Pointer
 	size int // user-requested size (≤ allocated size)
 }
 
@@ -76,7 +76,7 @@ func NewMemoryRegion(size int) (*MemoryRegion, error) {
 	}
 
 	return &MemoryRegion{
-		addr: addr,
+		addr: unsafe.Add(unsafe.Pointer(nil), addr),
 		size: size,
 	}, nil
 }
@@ -91,23 +91,23 @@ func NewMemoryRegion(size int) (*MemoryRegion, error) {
 // from multiple goroutines are safe provided the caller serialises
 // read/write access.
 func (r *MemoryRegion) Bytes() []byte {
-	if r.addr == 0 {
+	if r.addr == nil {
 		return nil
 	}
-	return unsafe.Slice((*byte)(unsafe.Pointer(r.addr)), r.size)
+	return unsafe.Slice((*byte)(r.addr), r.size)
 }
 
 // Close releases the underlying memory back to the OS. After Close, any
 // slices obtained via Bytes become invalid (dangling pointers).
 func (r *MemoryRegion) Close() error {
-	if r.addr == 0 {
+	if r.addr == nil {
 		return nil
 	}
-	err := windows.VirtualFree(r.addr, 0, windows.MEM_RELEASE)
+	err := windows.VirtualFree(uintptr(r.addr), 0, windows.MEM_RELEASE)
 	if err != nil {
 		return err
 	}
-	r.addr = 0
+	r.addr = nil
 	r.size = 0
 	return nil
 }
@@ -175,7 +175,7 @@ func ObfuscatedSleep(d time.Duration, regions ...*MemoryRegion) error {
 	for _, r := range regions {
 		var old uint32
 		if err := windows.VirtualProtect(
-			r.addr,
+			uintptr(r.addr),
 			uintptr(r.size),
 			windows.PAGE_NOACCESS,
 			&old,
@@ -200,7 +200,7 @@ func ObfuscatedSleep(d time.Duration, regions ...*MemoryRegion) error {
 	for _, r := range regions {
 		var old uint32
 		if err := windows.VirtualProtect(
-			r.addr,
+			uintptr(r.addr),
 			uintptr(r.size),
 			windows.PAGE_READWRITE,
 			&old,
@@ -286,7 +286,7 @@ func unwindProtect(regions []*MemoryRegion, snapshots []regionSnap) {
 	for i, r := range regions {
 		var old uint32
 		// Best-effort — the page might not be protected yet.
-		_ = windows.VirtualProtect(r.addr, uintptr(r.size), windows.PAGE_READWRITE, &old)
+		_ = windows.VirtualProtect(uintptr(r.addr), uintptr(r.size), windows.PAGE_READWRITE, &old)
 		xorInPlace(r.Bytes(), snapshots[i].mask[:])
 	}
 }
