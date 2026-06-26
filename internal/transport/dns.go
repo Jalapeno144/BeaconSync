@@ -167,6 +167,7 @@ func (t *DNSTransport) Connect() error {
 	msg := new(dns.Msg)
 	msg.SetQuestion(t.cfg.coverDomain+".", dns.TypeA)
 	msg.RecursionDesired = true
+	msg.SetEdns0(4096, false) // modern stub resolver fingerprint
 
 	t.debug("[dns] connect probe → %s (%s)", t.cfg.coverDomain, t.cfg.dnsServer)
 

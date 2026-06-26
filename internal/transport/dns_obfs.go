@@ -116,6 +116,11 @@ func (o *DNSObfuscator) EncodeQuery(payload []byte, seq byte) (*dns.Msg, error) 
 	// Don't set RD = false — that's unusual for stub resolvers
 	// and would stand out. A normal client sets RD = true.
 
+	// EDNS0: advertise a 4096-byte UDP payload (RFC 6891).
+	// Modern stub resolvers always include an OPT pseudo-record;
+	// omitting it makes the query stand out as pre-1999 traffic.
+	msg.SetEdns0(4096, false)
+
 	return msg, nil
 }
 
