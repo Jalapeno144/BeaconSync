@@ -23,16 +23,20 @@ type httpTransportConfig struct {
 	idleConnTimeout   time.Duration
 	disableKeepAlives bool
 	timeout           time.Duration
+	sendPath          string
+	connectPath       string
 
 	TLS TLSConfig `yaml:"tls"` // Add TLS configuration
 }
 
 // HTTPTransport implements Transport over HTTP and HTTPS.
 type HTTPTransport struct {
-	serverAddr string
-	protocol   string
-	client     *http.Client
-	modifiers  []RequestModifier // Allow users to set request head
+	serverAddr  string
+	protocol    string
+	client      *http.Client
+	connectPath string
+	sendPath    string
+	modifiers   []RequestModifier // Allow users to set request head
 }
 
 // HTTPTransportOption is a functional option for configuring HTTPTransport.
@@ -54,6 +58,16 @@ func WithIdleConnTimeout(d time.Duration) HTTPTransportOption {
 // WithDisableKeepAlives disables HTTP keep-alive when set to true.
 func WithDisableKeepAlives(b bool) HTTPTransportOption {
 	return func(c *httpTransportConfig) { c.disableKeepAlives = b }
+}
+
+// WithSendPath sets where the data come from
+func WithSendPath(p string) HTTPTransportOption {
+	return func(c *httpTransportConfig) { c.sendPath = p }
+}
+
+// WithConnectPath sets where the C2 invoke connect
+func WithConnectPath(p string) HTTPTransportOption {
+	return func(c *httpTransportConfig) { c.connectPath = p }
 }
 
 // WithTimeout sets the overall request timeout.
@@ -126,9 +140,19 @@ func NewHTTPTransport(addr, proto string, opts ...HTTPTransportOption) (*HTTPTra
 		tr.TLSClientConfig = tlsCfg
 	}
 
+	// Apply defaults for paths if not set
+	if cfg.connectPath == "" {
+		cfg.connectPath = "connect"
+	}
+	if cfg.sendPath == "" {
+		cfg.sendPath = "data"
+	}
+
 	return &HTTPTransport{
-		serverAddr: addr,
-		protocol:   proto,
+		serverAddr:  addr,
+		protocol:    proto,
+		connectPath: cfg.connectPath,
+		sendPath:    cfg.sendPath,
 		client: &http.Client{
 			Timeout:   cfg.timeout,
 			Transport: tr,
@@ -157,12 +181,30 @@ func SetUserAgent(ua string) RequestModifier {
 	}
 }
 
-// Connect sends a GET request to the /Connect endpoint to verify
+// AddRequestModifier appends one or more RequestModifiers to the transport.
+// They will be applied to every outgoing request in Connect and Send.
+func (h *HTTPTransport) AddRequestModifier(mods ...RequestModifier) {
+	h.modifiers = append(h.modifiers, mods...)
+}
+
+// Connect sends a GET request to the connect endpoint to verify
 // connectivity with the server.
 func (h *HTTPTransport) Connect() error {
-	url := fmt.Sprintf("%s://%s/Connect", h.protocol, h.serverAddr)
+	url := fmt.Sprintf("%s://%s/%s", h.protocol, h.serverAddr, h.connectPath)
 
-	resp, err := h.client.Get(url)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("Connect failed to create request: %w", err)
+	}
+
+	// Apply all registered request modifiers (headers, etc.)
+	for _, mod := range h.modifiers {
+		if err := mod(req); err != nil {
+			return fmt.Errorf("Connect failed to apply modifier: %w", err)
+		}
+	}
+
+	resp, err := h.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Connect failed: %w", err)
 	}
@@ -175,11 +217,25 @@ func (h *HTTPTransport) Connect() error {
 	return nil
 }
 
-// Send transmits data to the server by POSTing to the /data endpoint.
+// Send transmits data to the server by POSTing to the send endpoint.
 func (h *HTTPTransport) Send(data []byte) ([]byte, error) {
-	url := fmt.Sprintf("%s://%s/data", h.protocol, h.serverAddr)
+	url := fmt.Sprintf("%s://%s/%s", h.protocol, h.serverAddr, h.sendPath)
 
-	resp, err := h.client.Post(url, "application/octet-stream", bytes.NewReader(data))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("send failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/octet-stream")
+
+	// Apply all registered request modifiers (headers, etc.)
+	for _, mod := range h.modifiers {
+		if err := mod(req); err != nil {
+			return nil, fmt.Errorf("send failed to apply modifier: %w", err)
+		}
+	}
+
+	resp, err := h.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("send failed: %w", err)
 	}
