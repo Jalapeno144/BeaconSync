@@ -26,6 +26,9 @@ A covert channel that supports the transmission of encrypted information
     │   │    ├── heartbeat.go
     │   │    └── scheduler.go
     │   ├── cli/                   # cli module
+    │   │    ├── cli_connect.go
+    │   │    ├── cli_heartbeat.go           
+    │   │    ├── cli_send.go
     │   │    └── cli.go 
     │   ├── transport/             # transportation module
     │   │    ├── transport.go      # define Transport interface
@@ -55,7 +58,7 @@ A covert channel that supports the transmission of encrypted information
     │   └── validator/
     ├── pkg/
     ├── configs/
-    ├── .gitignores
+    ├── .gitignore
     ├── LICENSE                    # my license
     ├── docs/
     ├── go.mod
