@@ -1,3 +1,4 @@
+// highest abstract layer of crypto module
 package crypto
 
 import (

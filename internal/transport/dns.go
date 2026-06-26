@@ -188,14 +188,14 @@ func (t *DNSTransport) Connect() error {
 //  3. Extracts the response payload from the CNAME record
 func (t *DNSTransport) Send(payload []byte) ([]byte, error) {
 	if len(payload) > MaxRawPayload {
-		return nil, fmt.Errorf("dns send: payload %d bytes exceeds MaxRawPayload %d", len(payload), MaxRawPayload)
+		return nil, fmt.Errorf("DNS SEND: PAYLOAD %d BYTES EXCEED MAXRAWPAYLOAD %d", len(payload), MaxRawPayload)
 	}
 
 	seq := t.nextSeq()
 
 	query, err := t.obf.EncodeQuery(payload, seq)
 	if err != nil {
-		return nil, fmt.Errorf("dns send: encode: %w", err)
+		return nil, fmt.Errorf("DNS SEND: ENCODE: %w", err)
 	}
 
 	t.debug("[dns] query %q (%d bytes payload, seq=%d)",
@@ -222,11 +222,16 @@ func (t *DNSTransport) Send(payload []byte) ([]byte, error) {
 		t.debug("[dns] response in %v (rcode=%s, answers=%d)",
 			rtt, dns.RcodeToString[response.Rcode], len(response.Answer))
 
+		// fix the problem of decoding without getting data
+		if response.Rcode != dns.RcodeSuccess {
+			return nil, fmt.Errorf("DNS SEND: DECODE %s", dns.RcodeToString[response.Rcode])
+		}
+
 		resp, _, err := t.obf.DecodeResponse(response)
 		if err != nil {
 			// Decode failure is not a network error — don't
 			// retry; the server sent something unexpected.
-			return nil, fmt.Errorf("dns send: decode: %w", err)
+			return nil, fmt.Errorf("DNS SEND: DECODE: %w", err)
 		}
 
 		return resp, nil
