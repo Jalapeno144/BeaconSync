@@ -30,17 +30,17 @@ var (
 // sysInfo mirrors the Windows SYSTEM_INFO structure.
 // Layout validated against sizeof(SYSTEM_INFO) == 48 on amd64.
 type sysInfo struct {
-	processorArchitecture uint16
-	reserved              uint16
-	pageSize              uint32
+	processorArchitecture     uint16
+	reserved                  uint16
+	pageSize                  uint32
 	minimumApplicationAddress uintptr
 	maximumApplicationAddress uintptr
-	activeProcessorMask   uintptr
-	numberOfProcessors    uint32
-	processorType         uint32
-	allocationGranularity uint32
-	processorLevel        uint16
-	processorRevision     uint16
+	activeProcessorMask       uintptr
+	numberOfProcessors        uint32
+	processorType             uint32
+	allocationGranularity     uint32
+	processorLevel            uint16
+	processorRevision         uint16
 }
 
 // memStatusEx mirrors the Windows MEMORYSTATUSEX structure.
@@ -429,4 +429,50 @@ var vmOUI = [][3]byte{
 	{0x08, 0x00, 0x27}, // VirtualBox
 	{0x00, 0x15, 0x5D}, // Hyper-V
 	{0x00, 0x16, 0x3E}, // Xen
+}
+
+// lastInputInfo mirrors the Windows LASTINPUTINFO structure.
+type lastInputInfo struct {
+	cbSize uint32
+	dwTime uint32
+}
+
+// GetStatusOfInput checks if user input exists in the environment.
+// Returns:
+//
+//	0 — unlikely sandbox (input detected)
+//	1 — highly probable sandbox (no input)
+func GetStatusOfInput() int {
+	user32 := windows.NewLazySystemDLL("user32.dll")
+	getLastInputInfo := user32.NewProc("GetLastInputInfo")
+	kernel32 := windows.NewLazySystemDLL("kernel32.dll")
+	getTickCount := kernel32.NewProc("GetTickCount")
+
+	var lii lastInputInfo
+	lii.cbSize = uint32(unsafe.Sizeof(lii))
+
+	// Get the initial idle state
+	getLastInputInfo.Call(uintptr(unsafe.Pointer(&lii)))
+	initialInputTime := lii.dwTime
+	t1, _, _ := getTickCount.Call()
+	idleTime1 := uint32(t1) - lii.dwTime
+
+	// Wait for 3 seconds
+	time.Sleep(3 * time.Second)
+
+	// Retrieve again and check if the idle time has been reset.
+	getLastInputInfo.Call(uintptr(unsafe.Pointer(&lii)))
+	t2, _, _ := getTickCount.Call()
+	idleTime2 := uint32(t2) - lii.dwTime
+
+	if idleTime2 < idleTime1 {
+		return 1
+	}
+	time.Sleep(2 * time.Second)
+	getLastInputInfo.Call(uintptr(unsafe.Pointer(&lii)))
+
+	if lii.dwTime == initialInputTime {
+		return 0
+	}
+	return 1
 }
