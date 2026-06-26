@@ -27,8 +27,19 @@ type httpTransportConfig struct {
 	TLS TLSConfig `yaml:"tls"` // Add TLS configuration
 }
 
+// HTTPTransport implements Transport over HTTP and HTTPS.
+type HTTPTransport struct {
+	serverAddr string
+	protocol   string
+	client     *http.Client
+	modifiers  []RequestModifier // Allow users to set request head
+}
+
 // HTTPTransportOption is a functional option for configuring HTTPTransport.
 type HTTPTransportOption func(*httpTransportConfig)
+
+// interface which allows users to modify their http request head
+type RequestModifier func(*http.Request) error
 
 // WithMaxIdleConns sets the maximum number of idle connections in the pool.
 func WithMaxIdleConns(n int) HTTPTransportOption {
@@ -62,13 +73,6 @@ func WithCAPath(path string) HTTPTransportOption {
 	return func(c *httpTransportConfig) {
 		c.TLS.CAPath = path
 	}
-}
-
-// HTTPTransport implements Transport over HTTP and HTTPS.
-type HTTPTransport struct {
-	serverAddr string
-	protocol   string
-	client     *http.Client
 }
 
 // NewHTTPTransport creates a new HTTPTransport with the given address,
@@ -130,6 +134,27 @@ func NewHTTPTransport(addr, proto string, opts ...HTTPTransportOption) (*HTTPTra
 			Transport: tr,
 		},
 	}, nil
+}
+
+func SetContentType(ct string) RequestModifier {
+	return func(req *http.Request) error {
+		req.Header.Set("Content-Type", ct)
+		return nil
+	}
+}
+
+func SetXForWarderFor(xfwf string) RequestModifier {
+	return func(req *http.Request) error {
+		req.Header.Set("X-Forwarded-For", xfwf)
+		return nil
+	}
+}
+
+func SetUserAgent(ua string) RequestModifier {
+	return func(req *http.Request) error {
+		req.Header.Set("User-Agent", ua)
+		return nil
+	}
 }
 
 // Connect sends a GET request to the /Connect endpoint to verify
