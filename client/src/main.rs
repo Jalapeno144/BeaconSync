@@ -1,3 +1,5 @@
+mod platform;
+
 fn main() {
-    println!("This is the client program of BeaconSync");
+    println!("Hello, world!");
 }
