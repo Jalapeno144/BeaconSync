@@ -1,7 +1,7 @@
 # BeaconSync
 A covert channel that supports the transmission of encrypted information
 
-## NOTICE THIS PROJECT IS UNDER PROCESSING 
+## NOTICE THIS PROJECT IS UNDER PROCESSING AND PLANNED TO REWRITE CLIENT IN RUST
 
 ## 🛠️ Tech Stack
 
