@@ -1,4 +1,4 @@
-package transport
+package http
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/Jalapeno144/BeaconSync/server/internal/transport"
 )
 
 // TLS configuration Path
@@ -266,4 +268,4 @@ func (h *HTTPTransport) ServerAddr() string { return h.serverAddr }
 func (h *HTTPTransport) Proto() string { return h.protocol }
 
 // Ensure HTTPTransport satisfies Transport at compile time.
-var _ Transport = (*HTTPTransport)(nil)
+var _ transport.Transport = (*HTTPTransport)(nil)

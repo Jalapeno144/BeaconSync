@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Jalapeno144/BeaconSync/server/internal/transport"
+	transporthttp "github.com/Jalapeno144/BeaconSync/server/internal/transport/http"
 )
 
 // ---------------------------------------------------------------------------
@@ -48,15 +48,15 @@ func (c *CLI) connect() error {
 	}
 	c.connected = false
 
-	opts := []transport.HTTPTransportOption{
-		transport.WithTimeout(time.Duration(c.cfg.Transport.Timeout) * time.Second),
-		transport.WithMaxIdleConns(c.cfg.HTTPOptions.MaxIdleConns),
-		transport.WithIdleConnTimeout(time.Duration(c.cfg.HTTPOptions.IdleConnTimeout) * time.Second),
-		transport.WithDisableKeepAlives(c.cfg.HTTPOptions.DisableKeepAlives),
+	opts := []transporthttp.HTTPTransportOption{
+		transporthttp.WithTimeout(time.Duration(c.cfg.Transport.Timeout) * time.Second),
+		transporthttp.WithMaxIdleConns(c.cfg.HTTPOptions.MaxIdleConns),
+		transporthttp.WithIdleConnTimeout(time.Duration(c.cfg.HTTPOptions.IdleConnTimeout) * time.Second),
+		transporthttp.WithDisableKeepAlives(c.cfg.HTTPOptions.DisableKeepAlives),
 	}
 
 	var err error
-	c.tr, err = transport.NewHTTPTransport(
+	c.tr, err = transporthttp.NewHTTPTransport(
 		c.cfg.Transport.ServerAddr,
 		c.cfg.Transport.Protocol,
 		opts...,

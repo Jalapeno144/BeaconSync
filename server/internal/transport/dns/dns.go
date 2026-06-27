@@ -1,4 +1,4 @@
-package transport
+package dns
 
 import (
 	"fmt"
@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
+
+	"github.com/Jalapeno144/BeaconSync/server/internal/transport"
 )
 
 // =============================================================================
@@ -291,7 +293,7 @@ func (t *DNSTransport) ResolveLocally() ([]string, error) {
 }
 
 // Ensure DNSTransport satisfies Transport at compile time.
-var _ Transport = (*DNSTransport)(nil)
+var _ transport.Transport = (*DNSTransport)(nil)
 
 // Ensure DNS client owns its connection pool correctly.
 func init() {
