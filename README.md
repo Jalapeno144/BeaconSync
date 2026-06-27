@@ -52,6 +52,7 @@ A covert channel that supports the transmission of encrypted information
     │   │    └── hkdf.go           # key deprivation implementation with HKDF-SHA256
     │   ├── executor/              # execute command on client machine
     │   ├── evasion/               # Anti-analysis and environment awareness
+    │   │    ├── hook.go
     │   │    ├── vault.go
     │   │    └── sandbox.go
     │   ├── storage/

