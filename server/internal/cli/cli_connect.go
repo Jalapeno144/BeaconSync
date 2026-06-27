@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Jalapeno144/BeaconSync/internal/transport"
+	"github.com/Jalapeno144/BeaconSync/server/internal/transport"
 )
 
 // ---------------------------------------------------------------------------

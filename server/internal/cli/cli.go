@@ -10,9 +10,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Jalapeno144/BeaconSync/internal/config"
-	"github.com/Jalapeno144/BeaconSync/internal/scheduler"
-	"github.com/Jalapeno144/BeaconSync/internal/transport"
+	"github.com/Jalapeno144/BeaconSync/server/internal/config"
+	"github.com/Jalapeno144/BeaconSync/server/internal/scheduler"
+	"github.com/Jalapeno144/BeaconSync/server/internal/transport"
 )
 
 // useRegex matches "use <host>:<port>" where host may be an IP, domain,

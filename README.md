@@ -13,57 +13,140 @@ A covert channel that supports the transmission of encrypted information
 
 ```text
     beaconsync/
-    ├── cmd/
-    │   ├── client/
-    │   │    ├── config.yaml       # default client configuration
-    │   │    └── main.go           # source code of client
-    │   └── server/
-    │        ├── config.yaml       # default server configuration
-    │        └── main.go           # source code of server
-    ├── test/                      # store my unit testing
-    ├── internal/
-    │   ├── scheduler/
-    │   │    ├── heartbeat.go
-    │   │    └── scheduler.go
-    │   ├── cli/                   # cli module
-    │   │    ├── cli_connect.go
-    │   │    ├── cli_heartbeat.go           
-    │   │    ├── cli_send.go
-    │   │    └── cli.go 
-    │   ├── transport/             # transportation module
-    │   │    ├── transport.go      # define Transport interface
-    │   │    ├── http.go           # HTTPTransport realization
-    │   │    ├── websocket.go
-    │   │    ├── dns.go            # client transportation with dns
-    │   │    ├── dns_obfs.go       # dns decoder
-    │   │    ├── dns_handler.go    # dns server (server-side invocation)
-    │   │    ├── websocket.go     
-    │   │    └── socks5.go       
-    │   ├── config/
-    │   │    └── config.go         # load default config
-    │   ├── protocol/
-    │   ├── sessions/              # used to manage client sessions
-    │   ├── encoder/               # encode data
-    │   ├── decoder/               # decode data
-    │   ├── crypto/                # cryptographic primitives and key management
-    │   │    ├── crypto.go         # interface define
-    │   │    ├── aead.go           # realization of AES-256-GCM crypto
-    │   │    ├── ecdh.go           # X25519 key generating and sharing
-    │   │    └── hkdf.go           # key deprivation implementation with HKDF-SHA256
-    │   ├── executor/              # execute command on client machine
-    │   ├── evasion/               # Anti-analysis and environment awareness
-    │   │    ├── hook.go
-    │   │    ├── vault.go
-    │   │    └── sandbox.go
-    │   ├── storage/
-    │   └── validator/
-    ├── pkg/
-    ├── configs/
-    ├── .gitignore
-    ├── LICENSE                    # my license
+    ├── server/                              # Go server
+    │   ├── cmd/
+    │   │   └── server/
+    │   │       └── main.go                  # server entry point
+    │   │
+    │   ├── configs/
+    │   │   └── config.yaml                  # default server configuration
+    │   │
+    │   ├── internal/
+    │   │   ├── cli/
+    │   │   │   ├── cli.go
+    │   │   │   ├── cli_connect.go
+    │   │   │   ├── cli_heartbeat.go
+    │   │   │   └── cli_send.go
+    │   │   │
+    │   │   ├── config/
+    │   │   │   └── config.go
+    │   │   │
+    │   │   ├── scheduler/
+    │   │   │   ├── heartbeat.go
+    │   │   │   └── scheduler.go
+    │   │   │
+    │   │   ├── transport/
+    │   │   │   ├── transport.go             # Transport interface
+    │   │   │   │
+    │   │   │   ├── http/
+    │   │   │   │   └── http.go
+    │   │   │   │
+    │   │   │   ├── websocket/
+    │   │   │   │   └── websocket.go
+    │   │   │   │
+    │   │   │   ├── socks5/
+    │   │   │   │   └── socks5.go
+    │   │   │   │
+    │   │   │   └── dns/
+    │   │   │       ├── dns.go
+    │   │   │       ├── handler.go
+    │   │   │       └── obfuscation.go
+    │   │   │
+    │   │   ├── protocol/
+    │   │   ├── sessions/
+    │   │   ├── codec/
+    │   │   ├── crypto/
+    │   │   │   ├── crypto.go
+    │   │   │   ├── aead.go
+    │   │   │   ├── ecdh.go
+    │   │   │   ├── hkdf.go
+    │   │   │   └── random.go
+    │   │   │
+    │   │   ├── executor/
+    │   │   ├── storage/
+    │   │   ├── validator/
+    │   │   └── logger/
+    │   │
+    │   ├── go.mod
+    │   └── go.sum
+    │
+    ├── client/                              # Rust agent
+    │   ├── Cargo.toml
+    │   ├── Cargo.lock
+    │   │
+    │   └── src/
+    │       ├── main.rs                      # client entry point
+    │       │
+    │       ├── config/
+    │       │
+    │       ├── scheduler/
+    │       │
+    │       ├── transport/
+    │       │   ├── mod.rs
+    │       │   ├── http.rs
+    │       │   ├── websocket.rs
+    │       │   ├── socks5.rs
+    │       │   └── dns.rs
+    │       │
+    │       ├── protocol/
+    │       │
+    │       ├── codec/
+    │       │
+    │       ├── crypto/
+    │       │   ├── mod.rs
+    │       │   ├── aead.rs
+    │       │   ├── ecdh.rs
+    │       │   ├── hkdf.rs
+    │       │   └── random.rs
+    │       │
+    │       ├── executor/
+    │       │
+    │       ├── evasion/
+    │       │   ├── mod.rs
+    │       │   ├── sleep.rs                 # sleep obfuscation
+    │       │   ├── timing.rs
+    │       │   │
+    │       │   └── sandbox/
+    │       │       ├── mod.rs
+    │       │       ├── cpu.rs
+    │       │       ├── memory.rs
+    │       │       ├── disk.rs
+    │       │       ├── process.rs
+    │       │       ├── registry.rs
+    │       │       ├── network.rs
+    │       │       ├── user.rs
+    │       │       └── score.rs
+    │       │
+    │       ├── platform/
+    │       │   ├── mod.rs
+    │       │   │
+    │       │   └── windows/
+    │       │       ├── mod.rs
+    │       │       ├── error.rs
+    │       │       ├── memory.rs            # VirtualAlloc / VirtualFree
+    │       │       ├── timer.rs             # WaitableTimer
+    │       │       ├── process.rs
+    │       │       ├── token.rs
+    │       │       ├── registry.rs
+    │       │       ├── filesystem.rs
+    │       │       └── network.rs
+    │       │
+    │       └── utils/
+    │
     ├── docs/
-    ├── go.mod
-    └── README.md
+    │   ├── architecture.md
+    │   ├── protocol.md
+    │   ├── transport.md
+    │   └── crypto.md
+    │
+    ├── tests/                               # integration tests
+    │
+    ├── scripts/
+    │
+    ├── .gitignore
+    ├── LICENSE
+    ├── README.md
+    └── CHANGELOG.md
 ```
 
 ## ⚙️ Core Modules Detail

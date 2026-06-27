@@ -51,10 +51,10 @@ type Task struct {
 type State int
 
 const (
-	StateStopped  State = iota // not running
-	StateRunning               // normal heartbeat cadence
-	StateBackoff               // degraded — exponential backoff is active
-	StateDormant               // deep sleep — prolonged outage, periodic wake-up
+	StateStopped State = iota // not running
+	StateRunning              // normal heartbeat cadence
+	StateBackoff              // degraded — exponential backoff is active
+	StateDormant              // deep sleep — prolonged outage, periodic wake-up
 )
 
 // String returns a human-readable label for the state.
