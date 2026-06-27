@@ -887,6 +887,7 @@ func knownAnalysisProcesses() []string {
 
 		// Disassemblers / RE suites
 		"ghidra.exe",
+		"ghidraRun.bat",
 		"radare2.exe",
 		"binaryninja.exe",
 		"cutter.exe",
