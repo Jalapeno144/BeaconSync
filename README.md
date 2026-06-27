@@ -51,7 +51,7 @@ A covert channel that supports the transmission of encrypted information
     │   │    ├── ecdh.go           # X25519 key generating and sharing
     │   │    └── hkdf.go           # key deprivation implementation with HKDF-SHA256
     │   ├── executor/              # execute command on client machine
-    │   ├── evasion/               # to avoid memory detection
+    │   ├── evasion/               # Anti-analysis and environment awareness
     │   │    ├── vault.go
     │   │    └── sandbox.go
     │   ├── storage/
